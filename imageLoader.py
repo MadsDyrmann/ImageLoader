@@ -8,7 +8,7 @@ import numpy as np
 from skimage import io,transform
 import os
 
-class imageloader:
+class imageLoader:
     def __init__(self):
         self.inputs = []
         self.targets = []
@@ -48,7 +48,7 @@ class imageloader:
             yield x, self.targets[excerpt]
 
 
-
+    #Update image-list from csv-file
     def inputsFromCSV(self, csvpath):       
         import csv
         with open(csvpath, 'rb') as csvfile:
@@ -59,7 +59,7 @@ class imageloader:
 
 
     def inputsFromFilePath(self, filepath):
-        #Find all stocks
+        #Find all images in folder and subfolder
         for root, dirnames, filenames in os.walk(filepath):
             for filename in filenames:
                 if filename.lower().endswith(('.jpg','.jpg','.png','.tif','.tiff')):
