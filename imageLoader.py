@@ -56,7 +56,7 @@ class imageLoader:
             x = np.empty((batchsize,)+self.imagesize)
             for ix, filename in enumerate(inputs):
                 im = io.imread(filename)
-                x[ix, :] = transform.resize(im, self.imagesize)
+                x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
             if returnstyle == 'numerical':
                 yield x, self.targetsNumerical[excerpt]
             if returnstyle == 'onehot':
