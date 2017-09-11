@@ -47,6 +47,9 @@ class imageLoader:
         
         self.__version__ = '1.1.5'
 
+
+
+    #Generator, which loops over a list of paths to files
     def iterate_minibatchesList(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
         if shuffle:
@@ -64,6 +67,8 @@ class imageLoader:
             if returnstyle == 'label':
                 yield self.inputs[excerpt], self.targets[excerpt]
 
+
+    #Generator, which loops over a images of paths to files
     def iterate_minibatchesImage(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
         if shuffle:
@@ -89,6 +94,8 @@ class imageLoader:
             if returnstyle == 'label':
                 yield x, self.targets[excerpt]
 
+
+    #Update one-hot targets
     def oneHotTargets(self, numClasses=None):
         #Use numClasses for overwriting the number of targets in current dataset.
         #Useful if, e.g. the test-set only contains 3 classes and the training contains 5 classes
@@ -111,6 +118,7 @@ class imageLoader:
         self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
         self.updateDataStats()
 
+    #Create list of images from input path, where folder-names are used as labels
     def inputsFromFilePath(self, filepath):
         self.inputpath = filepath
         # Find all images in folder and subfolder
@@ -139,6 +147,7 @@ class imageLoader:
 ##   testpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Test'
 ##   il_train2, il_test2 = imageLoader.setupTrainValAndTest(trainpath=trainpath,testpath=testpath,valpath=None,imagesize=(28,28,3))
 ##
+
 
 def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(None,None,None)):
     assert trainpath is not None
