@@ -61,11 +61,11 @@ class imageLoader:
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
             if returnstyle == 'numerical':
-                yield self.inputs[excerpt], self.targetsNumerical[excerpt]
+                yield x, np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
-                yield self.inputs[excerpt], self.targetsOneHot[excerpt]
+                yield x, np.array(self.targetsOneHot)[excerpt]
             if returnstyle == 'label':
-                yield self.inputs[excerpt], self.targets[excerpt]
+                yield x, (np.array(self.targets)[excerpt]).tolist()
 
 
     #Generator, which loops over a images of paths to files
@@ -88,15 +88,13 @@ class imageLoader:
                 im = io.imread(filename)
                 x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
             if returnstyle == 'numerical':
-                yield x, self.targetsNumerical[excerpt]
+                yield x, np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
-                yield x, self.targetsOneHot[excerpt]
+                yield x, np.array(self.targetsOneHot)[excerpt]
             if returnstyle == 'label':
-                yield x, self.targets[excerpt]
+                yield x, (np.array(self.targets)[excerpt]).tolist()
 
     def getImagesAndLabels(self, indices, returnstyle='numerical'):
-        assert len(self.inputs) == len(self.targets)
-
         inputs = [self.inputs[x] for x in indices]
 
         x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)
@@ -104,11 +102,13 @@ class imageLoader:
             im = io.imread(filename)
             x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
         if returnstyle == 'numerical':
-            return x, self.targetsNumerical[indices]
+            return x, np.array(self.targetsNumerical)[excerpt]
         if returnstyle == 'onehot':
-            return x, self.targetsOneHot[indices]
+            return x, np.array(self.targetsOneHot)[excerpt]
         if returnstyle == 'label':
-            return x, self.targets[indices]
+            return x, (np.array(self.targets)[excerpt]).tolist()
+            
+            
 
     #Update one-hot targets
     def oneHotTargets(self, numClasses=None):
