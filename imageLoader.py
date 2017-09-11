@@ -104,11 +104,11 @@ class imageLoader:
             im = io.imread(filename)
             x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
         if returnstyle == 'numerical':
-            yield x, self.targetsNumerical[indices]
+            return x, self.targetsNumerical[indices]
         if returnstyle == 'onehot':
-            yield x, self.targetsOneHot[indices]
+            return x, self.targetsOneHot[indices]
         if returnstyle == 'label':
-            yield x, self.targets[excerpt]
+            return x, self.targets[indices]
 
     #Update one-hot targets
     def oneHotTargets(self, numClasses=None):
