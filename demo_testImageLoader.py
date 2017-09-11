@@ -1,9 +1,11 @@
 
-from imageLoader import imageloader
+from ImageLoader.imageLoader import imageLoader
 
-il_test = imageloader()
-il_test.inputsFromFilePath(filepath='/media/mads/79131cf3-d458-45c7-bb29-830bc120a265/Phd/Software/DeepNetworks/SingleImageClassificationUsingCaffe/GeneratedDatasetImages_pad_256x256_2016-10-27/Test')
+il_test = imageLoader()
+il_test.inputsFromFilePath(filepath='/home/mads/AU_BrugerDrev/Database/TrainTestValDataset/GeneratedDatasetImages256x256_2016-12-16_SIMPLIFIED/Test')
 
 
-for data, labels in il_test.iterate_minibatchesImage(batchsize=10):
+#data, labels = next(il_test.iterate_minibatchesImage(batchsize=10))
+
+for data, labels in il_test.iterate_minibatchesImage(batchsize=13, shuffle=True, returnstyle = 'label'):
     pass
