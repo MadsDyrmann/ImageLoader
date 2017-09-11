@@ -69,7 +69,7 @@ class imageLoader:
 
 
     #Generator, which loops over a images of paths to files
-    def iterate_minibatchesImage(self, batchsize, shuffle=False, returnstyle='numerical'):
+    def iterate_minibatchesImage(self, batchsize, shuffle=False, returnstyle='numerical', zeromean=False, normalize=False):
         assert len(self.inputs) == len(self.targets)
         if shuffle:
             indices = np.arange(len(self.inputs))
@@ -87,6 +87,10 @@ class imageLoader:
             for ix, filename in enumerate(inputs):
                 im = io.imread(filename)
                 x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
+            if zeromean:
+                x=x-127
+            if normalize:
+                x=x/256
             if returnstyle == 'numerical':
                 yield x, np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
