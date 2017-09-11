@@ -24,7 +24,7 @@ class imageLoader:
         self.nClasses = []
         self.inputpath = ''
         
-        self.__version__ = 1.1.5
+        self.__version__ = '1.1.5'
 
     def iterate_minibatchesList(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
