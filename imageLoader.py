@@ -94,7 +94,7 @@ class imageLoader:
             if returnstyle == 'label':
                 yield x, self.targets[excerpt]
 
-    def getImagesAndLabels(self, indices. returnstyle == 'numerical'):
+    def getImagesAndLabels(self, indices, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
 
         inputs = [self.inputs[x] for x in indices]
