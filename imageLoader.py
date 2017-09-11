@@ -2,6 +2,8 @@
 
 '''
 Author: Mads Dyrmann
+
+2017-09-11: Specified datatype for onehot labels and images as int32 and float32, respectively.
 '''
 
 import numpy as np
@@ -21,6 +23,8 @@ class imageLoader:
         self.numericalDictionary = None
         self.nClasses = []
         self.inputpath = ''
+        
+        self.__version__ = 1.1.5
 
     def iterate_minibatchesList(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
@@ -53,7 +57,7 @@ class imageLoader:
                 inputs = self.inputs[excerpt]
 
 
-            x = np.empty((batchsize,)+self.imagesize)
+            x = np.empty((batchsize,)+self.imagesize,dtype=np.float32)
             for ix, filename in enumerate(inputs):
                 im = io.imread(filename)
                 x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
@@ -69,7 +73,7 @@ class imageLoader:
         #Useful if, e.g. the test-set only contains 3 classes and the training contains 5 classes
         if not numClasses:
             numClasses = self.nClasses
-        self.targetsOneHot = np.eye(numClasses)[self.targetsNumerical]
+        self.targetsOneHot = np.eye(numClasses)[self.targetsNumerical].astype(np.int32)
 
     # Update image-list from csv-file
     def inputsFromCSV(self, csvpath, numericalTargets=False):
