@@ -94,6 +94,21 @@ class imageLoader:
             if returnstyle == 'label':
                 yield x, self.targets[excerpt]
 
+    def getImagesAndLabels(self, indices. returnstyle == 'numerical'):
+        assert len(self.inputs) == len(self.targets)
+
+        inputs = [self.inputs[x] for x in indices]
+
+        x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)
+        for ix, filename in enumerate(inputs):
+            im = io.imread(filename)
+            x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
+        if returnstyle == 'numerical':
+            yield x, self.targetsNumerical[indices]
+        if returnstyle == 'onehot':
+            yield x, self.targetsOneHot[indices]
+        if returnstyle == 'label':
+            yield x, self.targets[excerpt]
 
     #Update one-hot targets
     def oneHotTargets(self, numClasses=None):
