@@ -102,11 +102,11 @@ class imageLoader:
             im = io.imread(filename)
             x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
         if returnstyle == 'numerical':
-            return x, np.array(self.targetsNumerical)[excerpt]
+            return x, np.array(self.targetsNumerical)[indices]
         if returnstyle == 'onehot':
-            return x, np.array(self.targetsOneHot)[excerpt]
+            return x, np.array(self.targetsOneHot)[indices]
         if returnstyle == 'label':
-            return x, (np.array(self.targets)[excerpt]).tolist()
+            return x, (np.array(self.targets)[indices]).tolist()
             
             
 
