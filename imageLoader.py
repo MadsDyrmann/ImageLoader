@@ -90,7 +90,7 @@ class imageLoader:
             if zeromean:
                 x=x-127
             if normalize:
-                x=x/256
+                x=x/255.0
             if returnstyle == 'numerical':
                 yield x, np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
@@ -98,12 +98,16 @@ class imageLoader:
             if returnstyle == 'label':
                 yield x, (np.array(self.targets)[excerpt]).tolist()
 
-    def getImagesAndLabels(self, indices, returnstyle='numerical'):
+    def getImagesAndLabels(self, indices, returnstyle='numerical', zeromean=False, normalize=False):
         inputs = [self.inputs[x] for x in indices]
 
         x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)
         for ix, filename in enumerate(inputs):
             im = io.imread(filename)
+            if zeromean:
+                x=1.0*x-127
+            if normalize:
+                x=1.0*x/255.0
             x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
         if returnstyle == 'numerical':
             return x, np.array(self.targetsNumerical)[indices]
@@ -134,8 +138,17 @@ class imageLoader:
                 self.inputs.append(row[0])
                 self.targets.append(row[2])
                 self.targetsNumerical.append(int(row[1]))
-        self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
+            
+        self.updateDicts()
+        #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
+        #self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
         self.updateDataStats()
+
+    
+    def updateDicts(self):
+        self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
+        self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
+
 
     #Create list of images from input path, where folder-names are used as labels
     def inputsFromFilePath(self, filepath):
@@ -150,7 +163,8 @@ class imageLoader:
         
         # Create  numerical labels if they do not exist
         if not self.numericalDictionary:
-            self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
+            self.updateDicts()
+            #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
             
         self.targetsNumerical = [self.numericalDictionary[x] for x in self.targets]
         self.updateDataStats()
