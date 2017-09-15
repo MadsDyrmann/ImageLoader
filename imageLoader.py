@@ -52,6 +52,10 @@ class imageLoader:
     #Generator, which loops over a list of paths to files
     def iterate_minibatchesList(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
+
+        import warnings
+        warnings.warn('Not tested implemented! Please report any unintende behaviour')
+
         if shuffle:
             indices = np.arange(len(self.inputs))
             np.random.shuffle(indices)
@@ -60,6 +64,7 @@ class imageLoader:
                 excerpt = indices[start_idx:start_idx + batchsize]
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
+            x=[self.inputs[ix] for ix  in excerpt]
             if returnstyle == 'numerical':
                 yield x, np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
@@ -81,6 +86,9 @@ class imageLoader:
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
                 inputs = self.inputs[excerpt]
+
+
+            print(excerpt)
 
 
             x = np.empty((batchsize,)+self.imagesize,dtype=np.float32)
@@ -144,6 +152,14 @@ class imageLoader:
         #self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
         self.updateDataStats()
 
+
+    def exportCSV(self, exportpath, delimiter=';'):
+        import pandas as pd
+        pathAndLables=list(zip(self.inputs,self.targetsNumerical))
+        pd.DataFrame(pathAndLables).to_csv(exportpath,sep=delimiter)
+        
+        
+        
     
     def updateDicts(self):
         self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
@@ -180,6 +196,10 @@ class imageLoader:
 ##   testpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Test'
 ##   il_train2, il_test2 = imageLoader.setupTrainValAndTest(trainpath=trainpath,testpath=testpath,valpath=None,imagesize=(28,28,3))
 ##
+  
+
+  
+
 
 
 def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(None,None,None)):
