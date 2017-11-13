@@ -25,6 +25,7 @@ SOFTWARE.
 Verision History: 
 
 Ver 1.1.5: 2017-09-11: Specified datatype for onehot labels and images as int32 and float32, respectively.
+Ver 1.1.6: 2017-10-05: Code structuring. Initial support for label-images for use with semantic segmentation
 '''
 
 import numpy as np
@@ -39,13 +40,14 @@ class imageLoader:
         self.nSamples = 0
         self.imagesize = (256, 256, 3)
         self.targetsNumerical = []
+        self.targetsNumericalStrings=[]
         self.targetsOneHot = []
         self.labelsDict = {}
         self.numericalDictionary = None
         self.nClasses = []
         self.inputpath = ''
         
-        self.__version__ = '1.1.5'
+        self.__version__ = '1.1.6'
 
 
 
@@ -54,7 +56,7 @@ class imageLoader:
         assert len(self.inputs) == len(self.targets)
 
         import warnings
-        warnings.warn('Not tested implemented! Please report any unintende behaviour')
+        warnings.warn('Not tested yet! Please report any unintende behaviour')
 
         if shuffle:
             indices = np.arange(len(self.inputs))
@@ -65,13 +67,13 @@ class imageLoader:
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
             x=[self.inputs[ix] for ix  in excerpt]
-            if returnstyle == 'numerical':
-                yield x, np.array(self.targetsNumerical)[excerpt]
-            if returnstyle == 'onehot':
-                yield x, np.array(self.targetsOneHot)[excerpt]
-            if returnstyle == 'label':
-                yield x, (np.array(self.targets)[excerpt]).tolist()
-
+#            if returnstyle == 'numerical':
+#                yield x, np.array(self.targetsNumerical)[excerpt]
+#            if returnstyle == 'onehot':
+#                yield x, np.array(self.targetsOneHot)[excerpt]
+#            if returnstyle == 'label':
+#                yield x, (np.array(self.targets)[excerpt]).tolist()
+            yield x, self.getLabelbatch(excerpt=excerpt, returnstyle=returnstyle)
 
     #Generator, which loops over a images of paths to files
     def iterate_minibatchesImage(self, batchsize, shuffle=False, returnstyle='numerical', zeromean=False, normalize=False):
@@ -87,10 +89,6 @@ class imageLoader:
                 excerpt = slice(start_idx, start_idx + batchsize)
                 inputs = self.inputs[excerpt]
 
-
-            print(excerpt)
-
-
             x = np.empty((batchsize,)+self.imagesize,dtype=np.float32)
             for ix, filename in enumerate(inputs):
                 im = io.imread(filename)
@@ -99,12 +97,34 @@ class imageLoader:
                 x=x-127
             if normalize:
                 x=x/255.0
+#            if returnstyle == 'numerical':
+#                yield x, np.array(self.targetsNumerical)[excerpt]
+#            if returnstyle == 'onehot':
+#                yield x, np.array(self.targetsOneHot)[excerpt]
+#            if returnstyle == 'label':
+#                yield x, (np.array(self.targets)[excerpt]).tolist()
+            yield x, self.getLabelbatch(excerpt=excerpt, returnstyle=returnstyle)
+
+
+    # Create a batch of labels based on the specified returntype
+    def getLabelbatch(self, excerpt, returnstyle):
             if returnstyle == 'numerical':
-                yield x, np.array(self.targetsNumerical)[excerpt]
+                return np.array(self.targetsNumerical)[excerpt]
             if returnstyle == 'onehot':
-                yield x, np.array(self.targetsOneHot)[excerpt]
+                return np.array(self.targetsOneHot)[excerpt]
             if returnstyle == 'label':
-                yield x, (np.array(self.targets)[excerpt]).tolist()
+                return (np.array(self.targets)[excerpt]).tolist()
+            #In semantic segmentation, the target is an image
+            if returnstyle == 'image':
+                inputs = self.targets[excerpt]
+                y = np.empty((len(excerpt),)+self.imagesize,dtype=np.float32)
+                for ix, filename in enumerate(inputs):
+                    im = io.imread(filename)
+                    y[ix, :] = transform.resize(im, self.imagesize)
+                return y
+            
+
+        
 
     def getImagesAndLabels(self, indices, returnstyle='numerical', zeromean=False, normalize=False):
         inputs = [self.inputs[x] for x in indices]
@@ -124,23 +144,28 @@ class imageLoader:
         if returnstyle == 'label':
             return x, (np.array(self.targets)[indices]).tolist()
             
-            
+    
 
     #Update one-hot targets
-    def oneHotTargets(self, numClasses=None):
+    def updateOneHotTargets(self, numClasses=None):
         #Use numClasses for overwriting the number of targets in current dataset.
         #Useful if, e.g. the test-set only contains 3 classes and the training contains 5 classes
         if not numClasses:
             numClasses = self.nClasses
         self.targetsOneHot = np.eye(numClasses)[self.targetsNumerical].astype(np.int32)
+    
+    #Update targets numerical
+    def updateTargetsNumericalStrings(self):
+        self.targetsNumericalStrings = [str(x) for x in self.targetsNumerical]
+
 
     # Update image-list from csv-file
-    def inputsFromCSV(self, csvpath, numericalTargets=False):
+    def inputsFromCSV(self, csvpath, delimiter=';', numericalTargets=False):
         self.inputpath = csvpath
         
         import csv
         with open(csvpath, 'rb') as csvfile:
-            csvreader = csv.reader(csvfile, delimiter=';', quotechar='"')
+            csvreader = csv.reader(csvfile, delimiter=delimiter, quotechar='"')
             next(csvreader, None)  # Skip header
             for row in csvreader:
                 self.inputs.append(row[0])
@@ -156,8 +181,33 @@ class imageLoader:
     def exportCSV(self, exportpath, delimiter=';'):
         import pandas as pd
         pathAndLables=list(zip(self.inputs,self.targetsNumerical))
-        pd.DataFrame(pathAndLables).to_csv(exportpath,sep=delimiter)
+        pd.DataFrame(pathAndLables).to_csv(exportpath,sep=delimiter,header=False, index=False)
         
+        
+    def exportTFrecords(self, exportname='train.tfrecords'):
+        import tensorflow as tf
+
+        def _int64_feature(value):
+            return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+        def _bytes_feature(value):
+            return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+        
+        
+        # open the TFRecords file
+        writer = tf.python_io.TFRecordWriter(exportname)
+        for img, label in self.iterate_minibatchesImage(batchsize=1, shuffle=False, returnstyle='numerical', zeromean=False, normalize=False):
+
+            # Create a feature
+            feature = {'train/label': _int64_feature(label),
+                       'train/image': _bytes_feature(tf.compat.as_bytes(img.tostring()))}
+            # Create an example protocol buffer
+            example = tf.train.Example(features=tf.train.Features(feature=feature))
+            
+            # Serialize to string and write on the file
+            writer.write(example.SerializeToString())
+            
+        writer.close()
+
         
         
     
@@ -167,7 +217,7 @@ class imageLoader:
 
 
     #Create list of images from input path, where folder-names are used as labels
-    def inputsFromFilePath(self, filepath):
+    def inputsFromFilePath(self, filepath, targetpath=None):
         self.inputpath = filepath
         # Find all images in folder and subfolder
         for root, dirnames, filenames in os.walk(filepath):
@@ -175,7 +225,29 @@ class imageLoader:
                 if filename.lower().endswith(('.jpg', '.jpg', '.png', '.tif', '.tiff')):
                     self.inputs.append(os.path.join(root, filename))
 
-        self.targets = [x.split('/')[-2] for x in self.inputs]
+        #Use foldername as targets if targets is not specified
+        if targetpath is None:
+            self.targets = [x.split('/')[-2] for x in self.inputs]
+        
+        #If a path for targets is specied, match targets by filename with the inputs
+        else:
+            #Get all files in the targets directory
+            targetstmp=[]
+            for root, dirnames, filenames in os.walk(targetpath):
+                for filename in filenames:
+                    targetstmp.append(os.path.join(root, filename))
+            
+            #for all images, find their targets
+            for inp in self.inputs:
+                #targ = [x for x in targetstmp if os.path.splitext(os.path.basename(x))[0]==os.path.splitext(os.path.basename(inp))[0]]
+                targ = [x for x in targetstmp if fileparts(x)[1]==fileparts(inp)[1]]
+                
+                assert(len(targ)>0)
+                self.targets.append(targ[0])
+                
+                
+    
+            
         
         # Create  numerical labels if they do not exist
         if not self.numericalDictionary:
@@ -188,21 +260,22 @@ class imageLoader:
     def updateDataStats(self):
         self.nSamples = len(self.inputs)
         self.nClasses = len(self.numericalDictionary)
-        self.oneHotTargets()
+        self.updateOneHotTargets()
+        self.updateTargetsNumericalStrings()
               
 
+def fileparts(filepath):
+    return os.path.dirname(filepath), os.path.splitext(os.path.basename(filepath))[0], os.path.splitext(filepath)[-1]
+
+
 ## Usage:
-##   trainpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Train'
-##   testpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Test'
+##   trainpath = './Train'
+##   testpath = './Test'
 ##   il_train2, il_test2 = imageLoader.setupTrainValAndTest(trainpath=trainpath,testpath=testpath,valpath=None,imagesize=(28,28,3))
 ##
   
 
-  
-
-
-
-def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(None,None,None)):
+def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,trainlabelpath=None,testlabelpath=None,vallabelpath=None,imagesize=(None,None,None)):
     assert trainpath is not None
     # Setup classes, and make correct label setup between the three classes
     returnClasses=[]
@@ -213,7 +286,8 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(No
             il_train.inputsFromCSV(trainpath)
         else:
             il_train.inputsFromFilePath(trainpath)
-        il_train.oneHotTargets()
+        #il_train.oneHotTargets()
+        il_train.updateDataStats()
         returnClasses.append(il_train)
     if testpath:
         il_test = imageLoader()
@@ -223,7 +297,7 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(No
             il_test.inputsFromCSV(testpath)
         else:
             il_test.inputsFromFilePath(testpath)        
-        il_test.oneHotTargets(numClasses=il_train.nClasses)
+        il_test.updateOneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_test)
     if valpath:
         il_val = imageLoader()
@@ -233,7 +307,7 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(No
             il_val.inputsFromCSV(valpath)
         else:
             il_val.inputsFromFilePath(valpath)   
-        il_val.oneHotTargets(numClasses=il_train.nClasses)
+        il_val.updateOneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_val)
     # Return an instance for train, val and test if paths are provided
     return returnClasses
