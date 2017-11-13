@@ -31,6 +31,7 @@ Ver 1.1.6: 2017-10-05: Code structuring. Initial support for label-images for us
 
 #TODO: Support for image and label pairs like e.g. VOC or semantic segmentation
 #TODO: Support for defining train, test and val splits
+#TODO: Merge iterate_minibatchesList and iterate_minibatchesImage
 '''
 
 import numpy as np
@@ -50,7 +51,7 @@ class imageLoader:
         self.labelsDict = {}
         self.numericalDictionary = None
         self.nClasses = []
-        self.inputpath = ''       
+        self.inputpath = ''
         self.__version__ = '1.1.7'
 
 
@@ -118,6 +119,9 @@ class imageLoader:
                 return np.array(self.targetsOneHot)[excerpt]
             if returnstyle == 'label':
                 return (np.array(self.targets)[excerpt]).tolist()
+            if returnstyle == 'path':
+                return (np.array(self.targets)[excerpt]).tolist()
+                #TODO: just return the path to the annotation file, e.g. image or label
             #In semantic segmentation, the target is an image
             if returnstyle == 'image':
                 inputs = self.targets[excerpt]
@@ -126,9 +130,9 @@ class imageLoader:
                     im = io.imread(filename)
                     y[ix, :] = transform.resize(im, self.imagesize)
                 return y
-            
 
-        
+
+
 
     def getImagesAndLabels(self, indices, returnstyle='numerical', zeromean=False, normalize=False):
         inputs = [self.inputs[x] for x in indices]
@@ -155,7 +159,7 @@ class imageLoader:
         if not numClasses:
             numClasses = self.nClasses
         self.targetsOneHot = np.eye(numClasses)[self.targetsNumerical].astype(np.int32)
-    
+
     #Update targets numerical
     def updateTargetsNumericalStrings(self):
         self.targetsNumericalStrings = [str(x) for x in self.targetsNumerical]
@@ -184,8 +188,8 @@ class imageLoader:
         import pandas as pd
         pathAndLables=list(zip(self.inputs,self.targetsNumerical))
         pd.DataFrame(pathAndLables).to_csv(exportpath,sep=delimiter,header=False, index=False)
-        
-        
+
+
     def exportTFrecords(self, exportname='train.tfrecords'):
         import tensorflow as tf
 
@@ -193,8 +197,8 @@ class imageLoader:
             return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
         def _bytes_feature(value):
             return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-        
-        
+
+
         # open the TFRecords file
         writer = tf.python_io.TFRecordWriter(exportname)
         for img, label in self.iterate_minibatchesImage(batchsize=1, shuffle=False, returnstyle='numerical', zeromean=False, normalize=False):
@@ -204,10 +208,10 @@ class imageLoader:
                        'train/image': _bytes_feature(tf.compat.as_bytes(img.tostring()))}
             # Create an example protocol buffer
             example = tf.train.Example(features=tf.train.Features(feature=feature))
-            
+
             # Serialize to string and write on the file
             writer.write(example.SerializeToString())
-            
+
         writer.close()
 
 
@@ -229,7 +233,7 @@ class imageLoader:
         #Use foldername as targets if targets is not specified
         if targetpath is None:
             self.targets = [x.split('/')[-2] for x in self.inputs]
-        
+
         #If a path for targets is specied, match targets by filename with the inputs
         else:
             #Get all files in the targets directory
@@ -237,16 +241,14 @@ class imageLoader:
             for root, dirnames, filenames in os.walk(targetpath):
                 for filename in filenames:
                     targetstmp.append(os.path.join(root, filename))
-            
+
             #for all images, find their targets
             for inp in self.inputs:
                 #targ = [x for x in targetstmp if os.path.splitext(os.path.basename(x))[0]==os.path.splitext(os.path.basename(inp))[0]]
                 targ = [x for x in targetstmp if fileparts(x)[1]==fileparts(inp)[1]]
-                
+
                 assert(len(targ)>0)
                 self.targets.append(targ[0])
-
-        self.targets = [x.split('/')[-2] for x in self.inputs]
 
 
         # Create  numerical labels if they do not exist
@@ -262,7 +264,6 @@ class imageLoader:
         self.nClasses = len(self.numericalDictionary)
         self.updateOneHotTargets()
         self.updateTargetsNumericalStrings()
-        self.oneHotTargets()
 
 
 def fileparts(filepath):
@@ -301,7 +302,7 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,trainlabelpat
         if os.path.isfile(testpath):
             il_test.inputsFromCSV(testpath)
         else:
-            il_test.inputsFromFilePath(testpath)        
+            il_test.inputsFromFilePath(testpath)
         il_test.updateOneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_test)
     if valpath:
@@ -311,7 +312,7 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,trainlabelpat
         if os.path.isfile(testpath):
             il_val.inputsFromCSV(valpath)
         else:
-            il_val.inputsFromFilePath(valpath)   
+            il_val.inputsFromFilePath(valpath)
         il_val.updateOneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_val)
     # Return an instance for train, val and test if paths are provided
