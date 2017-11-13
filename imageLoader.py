@@ -55,7 +55,7 @@ class imageLoader:
         self.__version__ = '1.1.7'
 
 
-
+    """
     #Generator, which loops over a list of paths to files
     def iterate_minibatchesList(self, batchsize, shuffle=False, returnstyle='numerical'):
         assert len(self.inputs) == len(self.targets)
@@ -72,13 +72,8 @@ class imageLoader:
             else:
                 excerpt = slice(start_idx, start_idx + batchsize)
             x=[self.inputs[ix] for ix  in excerpt]
-#            if returnstyle == 'numerical':
-#                yield x, np.array(self.targetsNumerical)[excerpt]
-#            if returnstyle == 'onehot':
-#                yield x, np.array(self.targetsOneHot)[excerpt]
-#            if returnstyle == 'label':
-#                yield x, (np.array(self.targets)[excerpt]).tolist()
             yield x, self.getLabelbatch(excerpt=excerpt, returnstyle=returnstyle)
+
 
     #Generator, which loops over a images of paths to files
     def iterate_minibatchesImage(self, batchsize, shuffle=False, returnstyle='numerical', zeromean=False, normalize=False):
@@ -102,13 +97,44 @@ class imageLoader:
                 x=x-127
             if normalize:
                 x=x/255.0
-#            if returnstyle == 'numerical':
-#                yield x, np.array(self.targetsNumerical)[excerpt]
-#            if returnstyle == 'onehot':
-#                yield x, np.array(self.targetsOneHot)[excerpt]
-#            if returnstyle == 'label':
-#                yield x, (np.array(self.targets)[excerpt]).tolist()
             yield x, self.getLabelbatch(excerpt=excerpt, returnstyle=returnstyle)
+
+    """
+
+
+    #Generator, which loops over a images of paths to files
+    def iterate_minibatches(self, batchsize, shuffle=False, labelstyle='numerical', datastyle='image', zeromean=False, normalize=False):
+        assert len(self.inputs) == len(self.targets)
+        if shuffle:
+            indices = np.arange(len(self.inputs))
+            np.random.shuffle(indices)
+        for start_idx in range(0, len(self.inputs) - batchsize + 1, batchsize):
+            if shuffle:
+                excerpt = indices[start_idx:start_idx + batchsize]
+                inputs = [self.inputs[x] for x in excerpt]
+            else:
+                excerpt = slice(start_idx, start_idx + batchsize)
+                inputs = self.inputs[excerpt]
+
+            #Decode image if datastyle is image
+            if datastyle=='image':
+                x = np.empty((batchsize,)+self.imagesize,dtype=np.float32)
+                for ix, filename in enumerate(inputs):
+                    im = io.imread(filename)
+                    x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
+                if zeromean:
+                    x=x-127
+                if normalize:
+                    x=x/255.0
+
+            #Return path to sample if datastyle is path
+            if datastyle=='path':
+                x=[self.inputs[ix] for ix in excerpt]
+
+            yield x, self.getLabelbatch(excerpt=excerpt, returnstyle=labelstyle)
+
+
+
 
 
     # Create a batch of labels based on the specified returntype
@@ -130,7 +156,6 @@ class imageLoader:
                     im = io.imread(filename)
                     y[ix, :] = transform.resize(im, self.imagesize)
                 return y
-
 
 
 
@@ -179,8 +204,6 @@ class imageLoader:
                 self.targetsNumerical.append(int(row[1]))
 
         self.updateDicts()
-        #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
-        #self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
         self.updateDataStats()
 
 
@@ -254,7 +277,6 @@ class imageLoader:
         # Create  numerical labels if they do not exist
         if not self.numericalDictionary:
             self.updateDicts()
-            #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
 
         self.targetsNumerical = [self.numericalDictionary[x] for x in self.targets]
         self.updateDataStats()
