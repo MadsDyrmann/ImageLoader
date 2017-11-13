@@ -2,29 +2,32 @@
 '''
 Copyright 2017 Mads Dyrmann
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of 
-this software and associated documentation files (the "Software"), to deal in 
-the Software without restriction, including without limitation the rights to 
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-of the Software, and to permit persons to whom the Software is furnished to do 
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
 so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all 
+The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL 
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
 '''
-Verision History: 
+Verision History:
 
 Ver 1.1.5: 2017-09-11: Specified datatype for onehot labels and images as int32 and float32, respectively.
+
+#TODO: Support for image and label pairs like e.g. VOC or semantic segmentation
+#TODO: Support for defining train, test and val splits
 '''
 
 import numpy as np
@@ -44,9 +47,8 @@ class imageLoader:
         self.numericalDictionary = None
         self.nClasses = []
         self.inputpath = ''
-        
-        self.__version__ = '1.1.5'
 
+        self.__version__ = '1.1.5'
 
 
     #Generator, which loops over a list of paths to files
@@ -123,8 +125,8 @@ class imageLoader:
             return x, np.array(self.targetsOneHot)[indices]
         if returnstyle == 'label':
             return x, (np.array(self.targets)[indices]).tolist()
-            
-            
+
+
 
     #Update one-hot targets
     def oneHotTargets(self, numClasses=None):
@@ -137,7 +139,7 @@ class imageLoader:
     # Update image-list from csv-file
     def inputsFromCSV(self, csvpath, numericalTargets=False):
         self.inputpath = csvpath
-        
+
         import csv
         with open(csvpath, 'rb') as csvfile:
             csvreader = csv.reader(csvfile, delimiter=';', quotechar='"')
@@ -146,7 +148,7 @@ class imageLoader:
                 self.inputs.append(row[0])
                 self.targets.append(row[2])
                 self.targetsNumerical.append(int(row[1]))
-            
+
         self.updateDicts()
         #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
         #self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
@@ -157,10 +159,8 @@ class imageLoader:
         import pandas as pd
         pathAndLables=list(zip(self.inputs,self.targetsNumerical))
         pd.DataFrame(pathAndLables).to_csv(exportpath,sep=delimiter)
-        
-        
-        
-    
+
+
     def updateDicts(self):
         self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
         self.labelsDict = {ix:key for ix,key in enumerate(list(set(self.targets)))}
@@ -176,29 +176,32 @@ class imageLoader:
                     self.inputs.append(os.path.join(root, filename))
 
         self.targets = [x.split('/')[-2] for x in self.inputs]
-        
+
         # Create  numerical labels if they do not exist
         if not self.numericalDictionary:
             self.updateDicts()
             #self.numericalDictionary = {key:ix for ix,key in enumerate(list(set(self.targets)))}
-            
+
         self.targetsNumerical = [self.numericalDictionary[x] for x in self.targets]
         self.updateDataStats()
-        
+
     def updateDataStats(self):
         self.nSamples = len(self.inputs)
         self.nClasses = len(self.numericalDictionary)
         self.oneHotTargets()
-              
+
 
 ## Usage:
 ##   trainpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Train'
 ##   testpath = '/media/mads/Eksternt drev/Images used in phd thesis/Cropped for classification/GeneratedDatasetImages128x128_2016-12-16/Test'
 ##   il_train2, il_test2 = imageLoader.setupTrainValAndTest(trainpath=trainpath,testpath=testpath,valpath=None,imagesize=(28,28,3))
 ##
-  
 
-  
+
+
+def setupTrainValAndTestFromOneInput(datapath=None,testFraction=0.2,ValFraction=0.2,TrainFraction=0.6):
+    assert datapath is not None
+    #TODO: Not yet implemented
 
 
 
@@ -222,7 +225,7 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(No
         if os.path.isfile(testpath):
             il_test.inputsFromCSV(testpath)
         else:
-            il_test.inputsFromFilePath(testpath)        
+            il_test.inputsFromFilePath(testpath)
         il_test.oneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_test)
     if valpath:
@@ -232,10 +235,10 @@ def setupTrainValAndTest(trainpath=None,testpath=None,valpath=None,imagesize=(No
         if os.path.isfile(testpath):
             il_val.inputsFromCSV(valpath)
         else:
-            il_val.inputsFromFilePath(valpath)   
+            il_val.inputsFromFilePath(valpath)
         il_val.oneHotTargets(numClasses=il_train.nClasses)
         returnClasses.append(il_val)
     # Return an instance for train, val and test if paths are provided
     return returnClasses
-    
-    
+
+
