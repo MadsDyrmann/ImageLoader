@@ -25,9 +25,7 @@ SOFTWARE.
 Verision History:
 
 Ver 1.1.5: 2017-09-11: Specified datatype for onehot labels and images as int32 and float32, respectively.
-<<<<<<< HEAD
 Ver 1.1.6: 2017-10-05: Code structuring. Initial support for label-images for use with semantic segmentation
-=======
 
 #TODO: Support for image and label pairs like e.g. VOC or semantic segmentation
 #TODO: Support for defining train, test and val splits
@@ -244,7 +242,7 @@ class imageLoader:
 
 
     #Create list of images from input path, where folder-names are used as labels
-    def inputsFromFilePath(self, filepath, targetpath=None):
+    def inputsFromFilePath(self, filepath, targetpath=None, labelspath=None):
         self.inputpath = filepath
         # Find all images in folder and subfolder
         for root, dirnames, filenames in os.walk(filepath):
@@ -274,6 +272,11 @@ class imageLoader:
                 self.targets.append(targ[0])
 
 
+        #Load labelspath if path is given as input
+        if labelspath:
+            self.loadDict(labelspath)
+
+
         # Create  numerical labels if they do not exist
         if not self.numericalDictionary:
             self.updateDicts()
@@ -286,6 +289,15 @@ class imageLoader:
         self.nClasses = len(self.numericalDictionary)
         self.updateOneHotTargets()
         self.updateTargetsNumericalStrings()
+
+    def exportDict(self,labelpath='labels.txt'):
+        with open(labelpath,'wb') as f:
+            f.write('\n'.join([k+':'+self.labelsDict[k] for k in self.labelsDict.keys]))
+
+    def loadDict(self,dictpath):
+        with open(dictpath,'r') as f:
+            dt = f.readlines()
+            self.labelsDict = dict([d.split(':') for d in dt])
 
 
 def fileparts(filepath):
