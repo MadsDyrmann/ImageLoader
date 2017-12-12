@@ -297,7 +297,9 @@ class imageLoader:
     def loadDict(self,dictpath):
         with open(dictpath,'r') as f:
             dt = f.readlines()
-            self.labelsDict = dict([d.split(':') for d in dt])
+            dt = [d.split(':') for d in dt]
+            dt = [[int(d[0]),d[1]] for d in dt]
+            self.labelsDict = dict(dt)
 
 
 def fileparts(filepath):
