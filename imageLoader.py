@@ -292,7 +292,7 @@ class imageLoader:
 
     def exportDict(self,labelpath='labels.txt'):
         with open(labelpath,'wb') as f:
-            f.write('\n'.join([k+':'+self.labelsDict[k] for k in self.labelsDict.keys]))
+            f.write('\n'.join([k+':'+self.labelsDict[k] for k in self.labelsDict.keys()]))
 
     def loadDict(self,dictpath):
         with open(dictpath,'r') as f:
