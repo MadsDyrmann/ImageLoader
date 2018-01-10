@@ -101,7 +101,7 @@ class imageLoader:
 
 
     #Generator, which loops over a images of paths to files
-    def iterate_minibatches(self, batchsize, shuffle=False, labelstyle='numerical', datastyle='image', zeromean=False, normalize=False):
+    def iterate_minibatches(self, batchsize, shuffle=False, labelstyle='numerical', datastyle='image', zeromean=False, normalize=False, resize=False, preprocessor=None):
         assert len(self.inputs) == len(self.targets)
         if shuffle:
             indices = np.arange(len(self.inputs))
@@ -119,11 +119,17 @@ class imageLoader:
                 x = np.empty((batchsize,)+self.imagesize,dtype=np.float32)
                 for ix, filename in enumerate(inputs):
                     im = io.imread(filename)
-                    x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
-                if zeromean:
-                    x=x-127
-                if normalize:
-                    x=x/255.0
+
+                    if preprocessor:
+                        im = preprocessor(1.0*im)
+                    if resize:
+                        im = transform.resize(im, self.imagesize).astype(np.float32)
+                    if zeromean:
+                        im=1.0*im-127
+                    if normalize:
+                        im=im/255.0
+                    #Batch it up
+                    x[ix, :] = im
 
             #Return path to sample if datastyle is path
             if datastyle=='path':
@@ -157,17 +163,33 @@ class imageLoader:
 
 
 
-    def getImagesAndLabels(self, indices, returnstyle='numerical', zeromean=False, normalize=False):
+    def getImagesAndLabels(self, indices=None, returnstyle='numerical', zeromean=False, normalize=False, resize=True, preprocessor=None):
+        if indices==None: #If not defined, load all
+            indices=range(self.nSamples)
         inputs = [self.inputs[x] for x in indices]
 
-        x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)
+        #x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)
+
+        x = []
+
         for ix, filename in enumerate(inputs):
+            print('loading im '+str(ix)+' of '+str(len(indices)))
             im = io.imread(filename)
+
+            if preprocessor:
+                im = preprocessor(1.0*im)
+            if resize:
+                im = transform.resize(im, self.imagesize).astype(np.float32)
             if zeromean:
-                x=1.0*x-127
+                im=1.0*im-127
             if normalize:
-                x=1.0*x/255.0
-            x[ix, :] = transform.resize(im, self.imagesize).astype(np.float32)
+                im=im/255.0
+            #Batch it up
+            x.append(im)
+            #x[ix, :] = im
+
+
+
         if returnstyle == 'numerical':
             return x, np.array(self.targetsNumerical)[indices]
         if returnstyle == 'onehot':
@@ -291,7 +313,7 @@ class imageLoader:
         self.updateTargetsNumericalStrings()
 
     def exportDict(self,labelpath='labels.txt'):
-        with open(labelpath,'wb') as f:
+        with open(labelpath,'w') as f:
             f.write('\n'.join([str(k)+':'+self.labelsDict[k] for k in self.labelsDict.keys()]))
 
     def loadDict(self,dictpath):
