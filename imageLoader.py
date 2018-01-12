@@ -163,9 +163,12 @@ class imageLoader:
 
 
 
-    def getImagesAndLabels(self, indices=None, returnstyle='numerical', zeromean=False, normalize=False, resize=True, preprocessor=None):
+    def getImagesAndLabels(self, indices=None, returnstyle='numerical', shuffle=False, zeromean=False, normalize=False, resize=True, preprocessor=None):
         if indices==None: #If not defined, load all
-            indices=range(self.nSamples)
+            indices=list(range(self.nSamples))
+        if shuffle:
+            np.random.shuffle(indices)
+
         inputs = [self.inputs[x] for x in indices]
 
         #x = np.empty((len(indices),)+self.imagesize,dtype=np.float32)

@@ -12,8 +12,13 @@ from ImageLoader.imageLoader import imageLoader
 il_test = imageLoader()
 il_test.inputsFromFilePath(filepath='./SamplessemanticSegmentaiontrain/images', targetpath='./SamplessemanticSegmentaiontrain/targets')
 
-for data, labels in il_test.iterate_minibatches(batchsize=3, datastyle='image', shuffle=True, labelstyle = 'path'):
+for data, labels in il_test.iterate_minibatches(batchsize=3, datastyle='image', shuffle=True, labelstyle = 'path', resize=False):
     pass
+
+
+
+
+
 
 
 #########################
@@ -35,6 +40,14 @@ il_test.inputsFromFilePath(filepath='/mnt/AU_BrugerDrev/Database/TrainTestValDat
 
 for data, labels in il_test.iterate_minibatches(batchsize=13, datastyle='image', shuffle=True, labelstyle = 'label'):
     pass
+
+##########################
+
+il_test = imageLoader()
+il_test.inputsFromFilePath(filepath='/mnt/AU_BrugerDrev/Database/TrainTestValDataset/GeneratedDatasetImages256x256_2016-12-16_SIMPLIFIED/Test')
+
+# Get all images
+data, labels = il_test.getImagesAndLabels(returnstyle='numerical', zeromean=False, normalize=False, resize=True, preprocessor=None)
 
 
 
