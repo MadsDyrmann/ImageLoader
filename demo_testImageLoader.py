@@ -2,11 +2,45 @@
 from ImageLoader.imageLoader import imageLoader
 #from imageLoader import imageLoader
 
+import scipy
+
+
+
+
+
+
+#Test generator that starts over
+il_test = imageLoader()
+il_test.inputsFromFilePath(filepath='/media/mads/Data/TrainTestValDataset/GeneratedDatasetImages299x299_2018-01-11_SIMPLIFIED/Test')
+
+ix=0
+batchsize=10
+for data, labels in il_test.iterate_minibatches(batchsize=batchsize, datastyle='image', shuffle=True, resize=True, labelstyle = 'label', startOverAfterFinished=True):
+    ix+=1
+    print(batchsize*ix,il_test.nSamples)
+
+
+
+
+
+
+
+#Export list of labels and load them from other instance
+il_train = imageLoader()
+il_train.inputsFromFilePath(filepath='/media/mads/Data/TrainTestValDataset/GeneratedDatasetImages299x299_2018-01-11_SIMPLIFIED/Train')
+il_train.exportDict(labelpath='labels.txt')
+
+il_test = imageLoader()
+il_test.inputsFromFilePath(filepath='/media/mads/Data/TrainTestValDataset/GeneratedDatasetImages299x299_2018-01-11_SIMPLIFIED/Test',labelspath='labels.txt')
+img,lbl = il_test.getImagesAndLabels(returnstyle='numerical', shuffle=True)
+for i in range(10):
+    scipy.misc.imshow(img[i])
+    print(lbl[i])
+    pass
 
 
 
 #########################
-
 
 #Load images for semantic segmentation
 il_test = imageLoader()
@@ -51,14 +85,6 @@ data, labels = il_test.getImagesAndLabels(returnstyle='numerical', zeromean=Fals
 
 
 
-
-#Export list of labels and load them from other instance
-il_train = imageLoader()
-il_train.inputsFromFilePath(filepath='/mnt/AU_BrugerDrev/Database/TrainTestValDataset/GeneratedDatasetImages256x256_2016-12-16_SIMPLIFIED/Train')
-il_train.exportDict(labelpath='labels.txt')
-
-il_test = imageLoader()
-il_test.inputsFromFilePath(filepath='/mnt/AU_BrugerDrev/Database/TrainTestValDataset/GeneratedDatasetImages256x256_2016-12-16_SIMPLIFIED/Test',labelspath='labels.txt')
 
 
 
